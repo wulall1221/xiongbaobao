@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>熊保保电梯服务配件报价系统</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e67e22;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+
+        .calculator {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h2 {
+            color: var(--primary-color);
+            margin: 0;
+            font-size: 28px;
+        }
+
+        .header p {
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        input:focus {
+            border-color: var(--secondary-color);
+            outline: none;
+        }
+
+        input[readonly] {
+            background-color: #f5f5f5;
+        }
+
+        button {
+            background: var(--accent-color);
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+            font-weight: bold;
+            transition: background 0.3s ease;
+        }
+
+        button:hover {
+            background: #d35400;
+        }
+
+        .result-box {
+            margin-top: 25px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .result-label {
+            color: #666;
+        }
+
+        .result-value {
+            color: var(--primary-color);
+            font-weight: bold;
+        }
+
+        .total {
+            font-size: 20px;
+            color: #27ae60;
+        }
+
+        @media (max-width: 480px) {
+            .calculator {
+                padding: 20px;
+            }
+            
+            input {
+                padding: 10px;
+            }
+
+            .header h2 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="calculator">
+        <div class="header">
+            <h2>熊保保电梯服务配件报价系统</h2>
+            <p>精准计算，快速报价</p>
+        </div>
+        
+        <div class="input-group">
+            <label for="cost">配件成本（元）</label>
+            <input type="number" id="cost" placeholder="请输入配件成本" step="0.01" min="0">
+        </div>
+
+        <div class="input-group">
+            <label for="labor">维修工时（小时）</label>
+            <input type="number" id="labor" placeholder="请输入维修工时" step="0.5" min="0">
+        </div>
+
+        <div class="input-group">
+            <label for="rate">工时费率（元/小时）</label>
+            <input type="number" id="rate" value="160" readonly>
+        </div>
+
+        <button onclick="calculate()">立即计算</button>
+
+        <div class="result-box" id="result">
+            <div class="result-item">
+                <span class="result-label">配件销售价：</span>
+                <span class="result-value" id="partPrice">-</span>
+            </div>
+            <div class="result-item">
+                <span class="result-label">工时费用：</span>
+                <span class="result-value" id="laborCost">-</span>
+            </div>
+            <div class="result-item total">
+                <span class="result-label">总报价：</span>
+                <span class="result-value" id="totalPrice">-</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 配件价格计算系数
+        const PRICE_RATIOS = [
+            { min: 0, max: 200, ratio: 0.507281553 },
+            { min: 200, max: 500, ratio: 0.553398058 },
+            { min: 500, max: 1000, ratio: 0.599514563 },
+            { min: 1000, max: 3000, ratio: 0.645631068 },
+            { min: 3000, max: 5000, ratio: 0.691747573 },
+            { min: 5000, max: Infinity, ratio: 0.737864078 }
+        ];
+
+        function calculatePartPrice(cost) {
+            cost = parseFloat(cost);
+            const ratioObj = PRICE_RATIOS.find(r => cost >= r.min && cost < r.max);
+            return ratioObj ? cost / ratioObj.ratio : cost;
+        }
+
+        function calculate() {
+            // 获取输入值
+            const cost = document.getElementById('cost').value;
+            const labor = document.getElementById('labor').value;
+            
+            // 输入验证
+            if (!cost || !labor || cost < 0 || labor < 0) {
+                alert("请输入有效的正数值");
+                return;
+            }
+
+            // 计算各部分价格
+            const partPrice = calculatePartPrice(cost);
+            const laborCost = parseFloat(labor) * 160;
+            const totalPrice = partPrice + laborCost;
+
+            // 显示结果
+            document.getElementById('partPrice').textContent = `¥${formatMoney(partPrice)}`;
+            document.getElementById('laborCost').textContent = `¥${formatMoney(laborCost)}`;
+            document.getElementById('totalPrice').textContent = `¥${formatMoney(totalPrice)}`;
+        }
+
+        // 金额格式化（保留两位小数，千分位分隔）
+        function formatMoney(num) {
+            return parseFloat(num).toFixed(2)
+                .replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        }
+
+        // 输入限制
+        document.querySelectorAll('input[type="number"]').forEach(input => {
+            input.addEventListener('input', (e) => {
+                e.target.value = e.target.value.replace(/[^0-9.]/g, '');
+            });
+        });
+    </script>
+</body>
+</html>
